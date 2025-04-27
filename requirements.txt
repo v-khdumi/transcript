@@ -1,0 +1,4 @@
+pyannote.audio==3.3.2
+sounddevice==0.5.1
+numpy==2.2.5
+openai-whisper==20240930
