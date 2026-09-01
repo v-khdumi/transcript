@@ -128,6 +128,9 @@ celerybeat.pid
 .venv
 env/
 venv/
+
+# Saved meeting transcripts (contain conversation content)
+transcripts/
 ENV/
 env.bak/
 venv.bak/

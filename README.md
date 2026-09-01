@@ -1,137 +1,130 @@
-# Speech-to-Text & Speaker Diarization with Whisper and pyannote
+# Transcriere întâlniri în timp real (aplicație locală)
 
-This project records audio from your microphone, transcribes it using OpenAI's Whisper, and performs speaker diarization using pyannote-audio. It supports multiple languages (e.g., English, Arabic), and prints out who spoke when, along with the transcribed text. The code also measures and prints the time taken for each major step.
+Aplicație Python care rulează **local, pe computerul tău**, capturează audio de la microfon și produce
+**transcript în timp real, cu identificarea vorbitorilor (diarization)**, folosind serviciul de
+transcriere Azure AI Speech, disponibil prin **Microsoft Azure AI Foundry**. La final, conversația este
+salvată pe disc (JSON + text), împreună cu numele participanților.
 
----
-
-## Features
-
-- Record audio from your microphone
-- Transcribe speech to text using Whisper (offline, free)
-- Perform speaker diarization (who spoke when) using pyannote-audio
-- Supports multiple languages (set in code)
-- Prints diarized, speaker-attributed transcripts
-- Measures and prints timing for each processing step
+Poate fi folosită atât pentru **întâlniri fizice** (microfonul laptopului), cât și pentru
+**apeluri Microsoft Teams** (setând ca sursă de intrare implicită a sistemului un dispozitiv de
+tip loopback/virtual audio cable — vezi secțiunea [Capturarea unui apel Teams](#capturarea-unui-apel-teams)).
 
 ---
 
-## Requirements
+## De ce Azure AI Speech (Azure AI Foundry)?
 
-- Python 3.11 (tested)
-- [ffmpeg](https://ffmpeg.org/) (required by Whisper, install via `brew install ffmpeg` on macOS)
-- A HuggingFace account and access token (for pyannote-audio diarization)
+Modelul de transcriere Azure AI Speech oferă:
+- **Transcriere în timp real** direct din stream-ul de microfon (nu e nevoie de înregistrare + procesare offline).
+- **Diarization nativ** (`ConversationTranscriber`): fiecare frază este atribuită automat unui vorbitor
+  (`Guest-1`, `Guest-2`, ...), fără modele/pipeline-uri suplimentare.
+- Acces printr-o resursă Azure AI Foundry / Azure AI services, cu suport pentru multe limbi (inclusiv română).
 
 ---
 
-## Installation
+## Cerințe
 
-We recommend using a virtual environment.
+- Python 3.11+
+- Un microfon funcțional
+- O resursă **Speech** creată în [Azure AI Foundry](https://ai.azure.com) (sau Azure AI services din portalul Azure)
+  cu o cheie și o regiune (sau un endpoint dedicat)
 
-1. **Clone the repository:**
+---
+
+## Instalare locală
+
+1. **Clonează repository-ul:**
     ```bash
     git clone https://github.com/ariqbasyar/speech-to-text-whisper.git
     cd speech-to-text-whisper
     ```
 
-2. **Create and activate a virtual environment:**
+2. **Creează și activează un mediu virtual:**
     ```bash
     python -m venv env
-    source env/bin/activate  # On Windows use `env\Scripts\activate`
+    source env/bin/activate  # Pe Windows: env\Scripts\activate
     ```
 
-3. **Install the required packages:**
+3. **Instalează dependențele:**
     ```bash
     pip install -r requirements.txt
     ```
 
-4. **Install ffmpeg (if not already installed):**
-    - On macOS: `brew install ffmpeg`
-    - On Ubuntu: `sudo apt install ffmpeg`
-    - On Windows: [Download and add to PATH](https://ffmpeg.org/download.html)
-
-5. **Set your HuggingFace token:**
-    - Create a `.env` file in the project root with:
+4. **Configurează credențialele Azure AI Foundry Speech:**
+    - Copiază `.env.example` în `.env`:
+      ```bash
+      cp .env.example .env
       ```
-      HUGGINGFACE_TOKEN=your_huggingface_token_here
+    - Completează `.env` cu cheia și regiunea resursei tale Speech:
+      ```
+      AZURE_SPEECH_KEY=cheia-ta
+      AZURE_SPEECH_REGION=westeurope
+      AZURE_SPEECH_LANGUAGE=ro-RO
       ```
 
 ---
 
-## Usage
+## Utilizare
 
-1. **Run the program:**
+1. **Pornește aplicația:**
     ```bash
     python main.py
     ```
-
-2. **Follow the prompts:**
-    - The program will record audio from your microphone for a set duration (default: 20 seconds).
-    - It will then transcribe and diarize the audio, printing out the results with timing information.
-
----
-
-## Customization
-
-- **Change recording duration:**  
-  Edit the `duration` parameter in `record_audio()` in `main.py`.
-- **Change transcription language:**  
-  Edit the `language` parameter in the `transcribe_audio()` function in `main.py` (e.g., `"en"` for English, `"ar"` for Arabic).
-- **Change Whisper model:**  
-  Edit the model name in `whisper.load_model()` (e.g., `"base"`, `"small"`, `"medium"`, `"large"`).
+2. Se deschide o fereastră locală (GUI):
+   - Introdu numele participanților în câmpul **"Participanți"**, separate prin virgulă, în ordinea
+     probabilă în care vor vorbi prima dată (ex: `Ana, Bogdan, Cristina`). Pe măsură ce apar vorbitori noi,
+     aplicația le atribuie automat următorul nume din listă.
+   - Apasă **▶ Pornește** pentru a începe transcrierea live.
+   - Transcriptul apare în timp real, cu numele vorbitorului și ora fiecărei fraze; textul gri este
+     previzualizarea frazei curente (încă neconfirmată).
+   - Dacă un vorbitor a fost etichetat greșit, folosește panoul **"Redenumește vorbitor"** pentru a
+     corecta numele — corecția se aplică imediat, inclusiv retroactiv în transcript.
+   - Apasă **■ Oprește și salvează** la final. Conversația este salvată automat în folderul `transcripts/`,
+     ca fișier `.json` (structurat, cu mapping-ul vorbitorilor) și `.txt` (lizibil).
 
 ---
 
-## Example Output
+## Capturarea unui apel Teams
+
+Aplicația transcrie orice sunet primit prin **microfonul implicit al sistemului**. Pentru a transcrie
+un apel Teams (vocea celorlalți participanți, nu doar microfonul tău), trebuie ca sunetul de ieșire al
+apelului să ajungă pe un dispozitiv de intrare:
+
+- **Windows:** activează "Stereo Mix" din Sound Settings sau instalează un cablu audio virtual
+  (ex. [VB-CABLE](https://vb-audio.com/Cable/)) și setează-l ca dispozitiv de redare implicit pentru Teams
+  și ca microfon implicit pentru această aplicație.
+- **macOS:** instalează [BlackHole](https://github.com/ExistentialAudio/BlackHole) sau Loopback și
+  creează un dispozitiv agregat (microfon + BlackHole), setat ca intrare implicită.
+- **Linux:** creează un sink virtual PulseAudio/PipeWire (`pactl load-module module-null-sink ...`) și
+  setează-l ca sursă implicită de înregistrare.
+
+> Verifică politica organizației / consimțământul participanților înainte de a înregistra o întâlnire.
+
+---
+
+## Structura proiectului
 
 ```
-Recording for 20 seconds...
-Recording finished!
-record_audio took 20.01 seconds
-save_audio_to_wav took 0.01 seconds
-Transcribing...
-Transcribed!
-transcribe_audio took 4.12 seconds
-Raw segments:
-[0.0s - 2.0s]  Hello, how are you?
-[2.0s - 5.0s]  I'm fine, thank you.
-...
-
-Diarization:
-SPEAKER_00 [0.0s - 2.3s]
-SPEAKER_01 [2.7s - 5.4s]
-
-Transcribed segments:
-SPEAKER_00 [0.0s - 2.3s]: Hello, how are you?
-SPEAKER_01 [2.7s - 5.4s]: I'm fine, thank you.
-...
+main.py                        # punct de intrare, pornește GUI-ul
+transcript_app/
+  config.py                    # citește credențialele Azure din .env
+  transcriber.py                # wrapper peste Azure ConversationTranscriber (streaming + diarization)
+  speaker_mapping.py            # asociază etichetele de vorbitor (Guest-1...) cu nume reale
+  session_store.py              # salvează transcriptul (JSON + txt) la final
+  gui.py                        # interfața grafică (Tkinter): pornire/oprire, live view, redenumire
+transcripts/                    # transcripturile salvate (ignorate din git)
 ```
 
 ---
 
-## Tested Environment
+## Confidențialitate
 
-- Python 3.11.6
-- MacBook Air M3 (Apple Silicon)
-- macOS
-
----
-
-## Future Improvements
-
-- Speaker identification (assign real names/roles to speakers)
-- Web or GUI interface
-- Export results to file (txt, csv, etc.)
-- Word-level diarization
+Audio-ul este trimis către serviciul Azure AI Speech pentru procesare, conform politicilor Microsoft
+pentru resursa configurată. Fișierele `.env` (cu cheile tale) și `transcripts/` (conversațiile salvate)
+sunt excluse din git prin `.gitignore`.
 
 ---
 
-## License
+## Licență
 
 MIT
 
----
-
-## Acknowledgements
-
-- [OpenAI Whisper](https://github.com/openai/whisper)
-- [pyannote-audio](https://github.com/pyannote/pyannote-audio)

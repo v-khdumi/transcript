@@ -1,4 +1,2 @@
-pyannote.audio==3.3.2
-sounddevice==0.5.1
-numpy==2.2.5
-openai-whisper==20240930
+azure-cognitiveservices-speech==1.42.0
+python-dotenv==1.0.1
