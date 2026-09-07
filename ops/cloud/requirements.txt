@@ -1,0 +1,2 @@
+# Dependencies for the operations preflight image only.
+python-dotenv==1.2.2
