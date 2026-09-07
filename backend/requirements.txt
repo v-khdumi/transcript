@@ -1,0 +1,9 @@
+# Optional backend service only; Python 3.10 or newer.
+# Install from the repository root into a backend-specific virtual environment.
+# Existing desktop/shared dependency configuration is intentionally untouched.
+fastapi>=0.115,<1.0
+pydantic>=2.9,<3.0
+uvicorn>=0.30,<1.0
+azure-cognitiveservices-speech>=1.40,<2.0
+python-dotenv>=1.2.2,<2.0
+httpx==0.28.1

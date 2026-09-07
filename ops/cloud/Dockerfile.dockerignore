@@ -1,0 +1,9 @@
+**
+!transcript_app/
+!transcript_app/config.py
+!ops/
+!ops/cloud/
+!ops/cloud/Dockerfile
+!ops/cloud/Dockerfile.dockerignore
+!ops/cloud/requirements.txt
+!ops/cloud/preflight.py

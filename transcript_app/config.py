@@ -1,7 +1,7 @@
 """Loads app configuration from environment variables / .env file."""
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import dotenv
 
@@ -10,9 +10,15 @@ dotenv.load_dotenv()
 
 @dataclass
 class Settings:
-    speech_key: str
+    """Runtime configuration; repr omits secrets but serialization does not.
+
+    Keep this object local to the application. Do not serialize it into client
+    responses or logs: repr suppression is not general-purpose redaction.
+    """
+
+    speech_key: str = field(repr=False)
     speech_region: str | None
-    speech_endpoint: str | None
+    speech_endpoint: str | None = field(repr=False)
     language: str
 
 

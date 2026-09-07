@@ -1,0 +1,72 @@
+name: Cloud readiness preflight
+
+on:
+  pull_request:
+    paths:
+      - 'transcript_app/config.py'
+      - 'ops/cloud/**'
+      - '.github/workflows/cloud-readiness.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-readiness-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  configuration-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Build operations image
+        run: docker build --pull -f ops/cloud/Dockerfile -t transcript-config-preflight:ci .
+
+      - name: Verify non-root image identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          user="$(docker image inspect --format '{{.Config.User}}' transcript-config-preflight:ci)"
+          test "$user" = '10001:10001'
+
+      - name: Verify region configuration without Azure access
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --read-only --network none \
+            --cap-drop ALL --security-opt no-new-privileges=true \
+            --pids-limit 64 --memory 128m --cpus 1 \
+            --env AZURE_SPEECH_KEY=non-secret-preflight-placeholder \
+            --env AZURE_SPEECH_REGION=westeurope \
+            transcript-config-preflight:ci
+
+      - name: Verify endpoint configuration without Azure access
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --read-only --network none \
+            --cap-drop ALL --security-opt no-new-privileges=true \
+            --pids-limit 64 --memory 128m --cpus 1 \
+            --env AZURE_SPEECH_KEY=non-secret-preflight-placeholder \
+            --env AZURE_SPEECH_ENDPOINT=https://speech.example.invalid \
+            transcript-config-preflight:ci
+
+      - name: Verify missing configuration fails closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          docker run --rm --read-only --network none \
+            --cap-drop ALL --security-opt no-new-privileges=true \
+            --pids-limit 64 --memory 128m --cpus 1 \
+            transcript-config-preflight:ci || status=$?
+          if [ "$status" -ne 1 ]; then
+            printf 'Expected configuration exit 1; received %s\n' "$status" >&2
+            exit 1
+          fi
