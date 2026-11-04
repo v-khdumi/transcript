@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "scope": "fullstack",
+  "projects": [
+    {
+      "id": "transcript-desktop",
+      "directory": ".",
+      "runtime": "python",
+      "area": "shared",
+      "responsibility": "Single requirements-managed Python desktop application containing Tkinter presentation, environment configuration, Azure Speech integration, speaker mapping and local persistence; no separate runtime projects."
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "session-files",
+      "provider": "transcript-desktop",
+      "consumers": [
+        "external"
+      ],
+      "protocol": "file",
+      "definition": "Local UTF-8 exports in transcripts/ by default: transcript_YYYYMMDD_HHMMSS.json and transcript_YYYYMMDD_HHMMSS.txt, using local time. JSON is {speakers: object<string,string>, entries: array<object>} with GUI-produced entry fields time:string (%H:%M:%S), speaker_id:string, speaker:string and text:string. SessionStore preserves additional supplied entry fields, uses ensure_ascii=False and indent=2, and returns both path strings. Text is one '[time] speaker: text\\n' line per entry in order. Same-second filenames overwrite existing files. Filesystem and serialization errors propagate; writes are not atomic. Existing consumers are local readers of these saved exports; no repository project separately consumes them.",
+      "authentication": "Existing local filesystem permissions; no application-level file authentication. Saved conversations remain git-ignored.",
+      "verification": "Testing Agent must freeze session_store.datetime, save representative Unicode entries in a temporary directory, assert exact filenames, returned strings and JSON/text bytes, then assert empty saves, overwrite semantics and propagated write failures on baseline and candidate."
+    }
+  ],
+  "preservedBehavior": [
+    {
+      "id": "configuration-and-credentials",
+      "requirement": "Preserve dotenv loading, environment precedence, existing errors, language semantics and endpoint-over-region SDK construction without exposing credentials.",
+      "verification": "Run unittest cases using isolated environments and controlled imports; assert exact Settings fields and RuntimeError messages. Record fake SpeechConfig calls and assert endpoint, subscription and language arguments."
+    },
+    {
+      "id": "streaming-boundary",
+      "requirement": "Preserve default-microphone SDK use, queue tuple contracts, event filtering, asynchronous start, blocking stop and GUI-thread-only rendering.",
+      "verification": "Run fake-SDK unittest cases asserting callback registrations, exact queue output for partial/final/status/cancellation events, ignored empty or unrecognized results, no start future wait and one successful stop wait; drive GUI queue polling under Tk and assert the 100 ms scheduling interval."
+    },
+    {
+      "id": "speaker-and-gui-state",
+      "requirement": "Preserve ordered participant assignment, fallback IDs, rename semantics, defensive mapping copies, final entry fields and safe partial rendering.",
+      "verification": "Run mapper unittest assertions and real-Tk characterization cases covering repeated partials followed by final text, partial-first naming and retroactive rename; assert widget content, stored entries and control states. Report unavailable display access as blocked."
+    },
+    {
+      "id": "session-lifecycle",
+      "requirement": "Preserve save-on-stop only for nonempty GUI entries, no save on window close and existing handling of queued events when stopping.",
+      "verification": "Use service/store spies in unittest GUI cases to assert call order, service reference clearing, exact entries passed to save, no empty-session save, no close-time save and no newly introduced pending-event drain."
+    },
+    {
+      "id": "runtime-and-security",
+      "requirement": "Preserve the local Python entry point, requirements/pip ownership, exact dependency pins, credential and transcript exclusions, license and consent guidance. No manager version is inferred and no lockfile is introduced.",
+      "verification": "Use runpy with a stub GUI module to assert main invokes run; compare requirements.txt and LICENSE to baseline and assert existing ignore/privacy rules remain. Run python -m pip check and native module imports in the supported environment; report missing SDK, Tk, audio or cloud prerequisites without claiming a passing live check."
+    }
+  ]
+}

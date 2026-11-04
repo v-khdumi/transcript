@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "scenario": "refactor",
+  "checks": [
+    {
+      "id": "desktop-baseline-streaming-and-session-contracts",
+      "kind": "integration",
+      "project": ".",
+      "variants": ["baseline"],
+      "command": "xvfb-run",
+      "args": ["--auto-servernum", ".verification-venv/bin/python", "tests/modernization/verify_variant.py", "baseline"],
+      "report": {
+        "path": ".modernize-reports/desktop-contracts.json",
+        "format": "json"
+      },
+      "timeoutSeconds": 240
+    },
+    {
+      "id": "desktop-candidate-streaming-and-session-contracts",
+      "kind": "integration",
+      "project": ".",
+      "variants": ["candidate"],
+      "command": "xvfb-run",
+      "args": ["--auto-servernum", ".verification-venv/bin/python", "tests/modernization/verify_variant.py", "candidate"],
+      "report": {
+        "path": ".modernize-reports/desktop-contracts.json",
+        "format": "json"
+      },
+      "timeoutSeconds": 240
+    }
+  ]
+}

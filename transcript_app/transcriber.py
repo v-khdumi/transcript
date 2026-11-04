@@ -40,19 +40,29 @@ class ConversationTranscriberService:
         self._transcriber = speechsdk.transcription.ConversationTranscriber(
             speech_config=speech_config, audio_config=audio_config
         )
-
-        self._transcriber.transcribing.connect(self._on_transcribing)
-        self._transcriber.transcribed.connect(self._on_transcribed)
-        self._transcriber.session_started.connect(lambda evt: self.events.put(("status", "Sesiune pornită")))
-        self._transcriber.session_stopped.connect(lambda evt: self.events.put(("status", "Sesiune oprită")))
-        self._transcriber.canceled.connect(self._on_canceled)
-
+        self._connect_events(self._transcriber)
         self._transcriber.start_transcribing_async()
+
+    def _connect_events(
+        self, transcriber: speechsdk.transcription.ConversationTranscriber
+    ) -> None:
+        """Wire SDK notifications to queue-only handlers before starting audio."""
+        transcriber.transcribing.connect(self._on_transcribing)
+        transcriber.transcribed.connect(self._on_transcribed)
+        transcriber.session_started.connect(self._on_session_started)
+        transcriber.session_stopped.connect(self._on_session_stopped)
+        transcriber.canceled.connect(self._on_canceled)
 
     def stop(self) -> None:
         if self._transcriber is not None:
             self._transcriber.stop_transcribing_async().get()
             self._transcriber = None
+
+    def _on_session_started(self, evt) -> None:
+        self.events.put(("status", "Sesiune pornită"))
+
+    def _on_session_stopped(self, evt) -> None:
+        self.events.put(("status", "Sesiune oprită"))
 
     def _on_transcribing(self, evt) -> None:
         # Interim (not-yet-final) result, useful for a live "typing" preview.
